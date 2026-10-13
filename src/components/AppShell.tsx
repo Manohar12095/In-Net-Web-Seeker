@@ -111,7 +111,7 @@ export function AppShell({
             {engineOnline === true ? (
               <>
                 <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                <span className="text-zinc-300 text-[11px]">Engine 127.0.0.1:8765</span>
+                <span className="text-zinc-300 text-[11px]">Engine Online</span>
               </>
             ) : engineOnline === false ? (
               <>

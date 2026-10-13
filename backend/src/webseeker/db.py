@@ -100,7 +100,23 @@ def create_run(project_id: str, config: dict) -> str:
 def finish_run(run_id: str, status: str) -> None:
     with Session(engine) as s, s.begin():
         r = s.get(Run, run_id)
-        r.status, r.finished_at = status, _now()
+        if r:
+            r.status, r.finished_at = status, _now()
+
+
+def get_run(run_id: str) -> dict | None:
+    with Session(engine) as s:
+        r = s.get(Run, run_id)
+        if not r:
+            return None
+        return {
+            "id": r.id,
+            "project_id": r.project_id,
+            "status": r.status,
+            "config": r.config or {},
+            "started_at": r.started_at.isoformat() if r.started_at else None,
+            "finished_at": r.finished_at.isoformat() if r.finished_at else None,
+        }
 
 
 def save_event(run_id: str, kind: str, d: dict) -> None:

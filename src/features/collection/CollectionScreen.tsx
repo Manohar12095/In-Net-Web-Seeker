@@ -107,31 +107,68 @@ export function CollectionScreen({ project, runId, onBack }: CollectionScreenPro
   const totalBytes = resources.reduce((a, r) => a + (r.bytes ?? 0), 0);
   const dupCount = resources.filter(r => r.duplicate).length;
 
-  // Stream SSE events
+  // Stream SSE events with automatic polling fallback
   useEffect(() => {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+
+    const fetchLatestResources = async () => {
+      try {
+        const list = await api<ResourceEvent[]>(`/api/projects/${project.id}/all-resources?run_id=${runId}`);
+        if (list && list.length > 0) {
+          setResources(list);
+        }
+      } catch {
+        /* best-effort */
+      }
+    };
+
+    // Initial check in case run already has resources
+    fetchLatestResources();
 
     (async () => {
       try {
         for await (const ev of sse<CrawlEvent>(`/api/collections/${runId}/events`, ctrl.signal)) {
           setEvents(prev => [...prev.slice(-500), ev]); // Keep last 500 in log
           if (ev.type === "resource") {
-            setResources(prev => [...prev, ev as ResourceEvent]);
+            setResources(prev => {
+              if (prev.some(r => r.url === (ev as ResourceEvent).url)) return prev;
+              return [...prev, ev as ResourceEvent];
+            });
           } else if (ev.type === "summary") {
             setSummary(ev as SummaryEvent);
           } else if (ev.type === "end") {
             setStatus((ev as EndEvent).status);
+            await fetchLatestResources();
             break;
           }
         }
       } catch {
-        // aborted or network error
+        // SSE closed or interrupted - sync with database
+        await fetchLatestResources();
       }
     })();
 
-    return () => ctrl.abort();
-  }, [runId]);
+    // Background sync polling: every 3 seconds, sync resources and check run status
+    const pollTimer = setInterval(async () => {
+      try {
+        await fetchLatestResources();
+        const p = await api<{ runs?: Array<{ id: string; status: string }> }>(`/api/projects/${project.id}`);
+        const current = p.runs?.find(r => r.id === runId);
+        if (current && current.status !== "running") {
+          setStatus(current.status as any);
+          clearInterval(pollTimer);
+        }
+      } catch {
+        /* best effort */
+      }
+    }, 3000);
+
+    return () => {
+      ctrl.abort();
+      clearInterval(pollTimer);
+    };
+  }, [runId, project.id]);
 
   // Auto-scroll log
   useEffect(() => {

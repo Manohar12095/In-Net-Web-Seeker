@@ -165,23 +165,91 @@ async def start(req: StartReq):
 async def events(run_id: str):
     job = JOBS.get(run_id)
     if not job:
-        raise HTTPException(404, {"code": "not_found", "message": "Unknown run", "retryable": False})
+        run_record = db.get_run(run_id)
+        if not run_record:
+            raise HTTPException(404, {"code": "not_found", "message": "Unknown run", "retryable": False})
+
+        project_id = run_record["project_id"]
+        cfg = run_record.get("config") or {}
+        r_status = run_record.get("status")
+
+        # If run is already completed in database, stream back saved resources
+        if r_status in ("done", "cancelled", "failed"):
+            async def replay():
+                saved = db.all_resources_for_project(project_id, run_id)
+                for r in saved:
+                    yield f"data: {json.dumps({'type': 'resource', **r})}\n\n"
+                yield f"data: {json.dumps({'type': 'end', 'status': r_status})}\n\n"
+            return StreamingResponse(replay(), media_type="text/event-stream")
+
+        # In serverless environment, run the crawler inside the active SSE stream
+        target = cfg.get("target") or ""
+        t = parse_target(target)
+        if t.errors:
+            async def err_gen():
+                yield f"data: {json.dumps({'type': 'error', 'error': '; '.join(t.errors)})}\n\n"
+                yield f"data: {json.dumps({'type': 'end', 'status': 'failed'})}\n\n"
+            return StreamingResponse(err_gen(), media_type="text/event-stream")
+
+        job = JOBS[run_id] = Job()
+        store = DATA / "projects" / project_id
+
+        def push(ev: dict) -> None:
+            if job.q.full():
+                job.q.get_nowait()
+            job.q.put_nowait(ev)
+
+        async def emit(kind: str, data: dict) -> None:
+            db.save_event(run_id, kind, data)
+            push({"type": kind, **data})
+
+        async def go() -> None:
+            c_status = "failed"
+            client = make_client()
+            try:
+                job.crawler = Crawler(
+                    client,
+                    t.normalized,
+                    Limits(
+                        int(cfg.get("depth", 1)),
+                        int(cfg.get("max_pages", 50)),
+                        int(cfg.get("concurrency", 4)),
+                        int(cfg.get("max_file_mb", 25)) * 1_000_000,
+                    ),
+                    store,
+                    emit,
+                )
+                await job.crawler.run(t.normalized)
+                c_status = "cancelled" if job.crawler.cancel.is_set() else "done"
+            except Exception as e:
+                await emit("error", {"error": repr(e)})
+            finally:
+                await client.aclose()
+                db.finish_run(run_id, c_status)
+                push({"type": "end", "status": c_status})
+
+        asyncio.create_task(go())
 
     async def gen():
         while True:
-            ev = await job.q.get()
-            yield f"data: {json.dumps(ev)}\n\n"
-            if ev["type"] == "end":
-                break
+            try:
+                ev = await asyncio.wait_for(job.q.get(), timeout=15.0)
+                yield f"data: {json.dumps(ev)}\n\n"
+                if ev.get("type") == "end":
+                    break
+            except asyncio.TimeoutError:
+                # Keep-alive heartbeat ping
+                yield ": ping\n\n"
+
     return StreamingResponse(gen(), media_type="text/event-stream")
 
 
 @app.post("/api/collections/{run_id}/cancel")
 def cancel(run_id: str):
     job = JOBS.get(run_id)
-    if not job or not job.crawler:
-        raise HTTPException(404, {"code": "not_found", "message": "No active run", "retryable": False})
-    job.crawler.cancel.set()
+    if job and job.crawler:
+        job.crawler.cancel.set()
+    db.finish_run(run_id, "cancelled")
     return {"ok": True}
 
 
