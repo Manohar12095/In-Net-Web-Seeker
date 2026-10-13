@@ -27,13 +27,24 @@ db.init(DATA)
 
 def auth(request: Request, authorization: str = Header(default=""), token: str = Query(default="")):
     path = request.url.path
-    # Health check is always public across all routing variants
-    if path in ("/api/health", "/health", "/api/index.py", "/api") or path.endswith("/health"):
+    # Health check and target validation are always public across all routing variants
+    if (
+        path in ("/api/health", "/health", "/api/index.py", "/api")
+        or path.endswith("/health")
+        or path.startswith("/api/targets/validate")
+    ):
         return
 
     # Allow direct browser download of generated ZIP archives and crawled assets
     if (path.startswith("/api/exports/") and path.endswith("/download")) or \
        (path.startswith("/api/projects/") and (path.endswith("/download") or path.endswith("/content"))):
+        return
+
+    # Same-origin web app requests on Vercel or localhost are permitted
+    sec_fetch = request.headers.get("sec-fetch-site", "")
+    referer = request.headers.get("referer", "")
+    host = request.headers.get("host", "")
+    if sec_fetch == "same-origin" or (host and host in referer):
         return
 
     # If no token is set in environment (e.g. initial web deployment), permit requests
