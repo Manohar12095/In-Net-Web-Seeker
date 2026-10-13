@@ -57,8 +57,9 @@ export function ProjectWorkspace({ project, onBack }: ProjectWorkspaceProps) {
           </div>
         </div>
 
-        {/* Tab Strip */}
-        <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-xl p-1 text-xs font-mono">
+      {/* Tab Strip — horizontally scrollable on mobile */}
+        <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-xl p-1 text-xs font-mono overflow-x-auto">
+          <div className="flex items-center gap-0.5 min-w-max">
           {project.run_id && (
             <button
               onClick={() => setActiveTab("stream")}
@@ -132,6 +133,7 @@ export function ProjectWorkspace({ project, onBack }: ProjectWorkspaceProps) {
             <Download className="w-3.5 h-3.5" />
             Export & Report
           </button>
+          </div>
         </div>
       </div>
 
@@ -162,7 +164,16 @@ export function ProjectWorkspace({ project, onBack }: ProjectWorkspaceProps) {
 
         {activeTab === "intel" && (
           <IntelligenceDashboard
-            host={new URL(project.target.startsWith("http") ? project.target : `https://${project.target}`).hostname}
+            host={(() => {
+              try {
+                const url = project.target.startsWith("http")
+                  ? project.target
+                  : `https://${project.target}`;
+                return new URL(url).hostname;
+              } catch {
+                return project.target.replace(/^https?:\/\//, "").split("/")[0];
+              }
+            })()}
             targetUrl={project.target}
           />
         )}

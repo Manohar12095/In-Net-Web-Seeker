@@ -33,7 +33,7 @@ export function AppShell({
     };
 
     checkEngine();
-    const interval = setInterval(checkEngine, 8000);
+    const interval = setInterval(checkEngine, 30000); // Check every 30s (not 8s) to reduce API noise
     return () => {
       alive = false;
       clearInterval(interval);
@@ -71,8 +71,8 @@ export function AppShell({
 
           {activeProject && (
             <div className="hidden sm:flex items-center gap-2 pl-4 border-l border-white/8 text-xs font-mono">
-              <FolderKanban className="w-3.5 h-3.5 text-[#2DD4BF]" />
-              <span className="text-zinc-300 max-w-[200px] truncate">{activeProject.name}</span>
+              <FolderKanban className="w-3.5 h-3.5 text-[#2DD4BF] shrink-0" />
+              <span className="text-zinc-300 max-w-[160px] truncate">{activeProject.name}</span>
             </div>
           )}
         </div>

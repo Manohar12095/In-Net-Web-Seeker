@@ -83,6 +83,24 @@ def create_project(name: str, target: str) -> dict:
         return {"id": p.id, "name": p.name, "target": p.target}
 
 
+def get_project(pid: str) -> dict | None:
+    with Session(engine) as s:
+        p = s.get(Project, pid)
+        if not p:
+            return None
+        return {"id": p.id, "name": p.name, "target": p.target, "created_at": p.created_at.isoformat()}
+
+
+def ensure_project(pid: str, name: str, target: str) -> dict:
+    with Session(engine) as s, s.begin():
+        p = s.get(Project, pid)
+        if not p:
+            p = Project(id=pid, name=name, target=target)
+            s.add(p)
+            s.flush()
+        return {"id": p.id, "name": p.name, "target": p.target}
+
+
 def list_projects() -> list[dict]:
     with Session(engine) as s:
         rows = s.scalars(select(Project).order_by(Project.created_at.desc())).all()
@@ -169,6 +187,13 @@ def all_resources_for_project(project_id: str, run_id: str | None = None) -> lis
             q = q.where(Resource.run_id == run_id)
         q = q.order_by(Resource.id.asc())
         rows = s.scalars(q).all()
+
+        # Build sha256 -> count map to detect duplicates
+        sha_counts: dict[str, int] = {}
+        for r in rows:
+            if r.sha256 and r.status == "ok":
+                sha_counts[r.sha256] = sha_counts.get(r.sha256, 0) + 1
+
         return [
             {
                 "id": r.id,
@@ -182,8 +207,10 @@ def all_resources_for_project(project_id: str, run_id: str | None = None) -> lis
                 "mime": r.mime,
                 "detected": r.detected,
                 "size": r.size,
+                "bytes": r.size,            # alias for SSE-stream compat (frontend uses both)
                 "sha256": r.sha256,
                 "error": r.error,
+                "duplicate": bool(r.sha256 and sha_counts.get(r.sha256, 0) > 1),
             }
             for r in rows
         ]

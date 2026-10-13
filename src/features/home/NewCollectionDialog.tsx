@@ -55,6 +55,13 @@ export function NewCollectionDialog({
         }),
       });
 
+      // Persist to local storage so investigations survive serverless restarts
+      try {
+        const stored = JSON.parse(localStorage.getItem("innet_recent_projects") || "[]");
+        const updated = [{ ...project, run_id: run.run_id, created_at: new Date().toISOString() }, ...stored.filter((p: any) => p.id !== project.id)].slice(0, 20);
+        localStorage.setItem("innet_recent_projects", JSON.stringify(updated));
+      } catch {}
+
       onProjectCreated({ ...project, run_id: run.run_id });
       onClose();
     } catch (err: any) {

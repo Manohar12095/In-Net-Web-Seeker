@@ -37,7 +37,7 @@ export function useTargetValidation(input: string): Parsed | null {
 
     // Provide instant responsive feedback while server validates
     const local = fallbackParse(input);
-    if (local) setRes((prev) => prev ?? local);
+    if (local) setRes(local);  // always set local immediately, server result will override
 
     const t = setTimeout(() => {
       api<Parsed>(`/api/targets/validate?input=${encodeURIComponent(input)}`)
@@ -45,9 +45,10 @@ export function useTargetValidation(input: string): Parsed | null {
           if (alive) setRes(p);
         })
         .catch(() => {
+          // Server unreachable — keep local client-side parse
           if (alive && local) setRes(local);
         });
-    }, 150);
+    }, 200);
     return () => { alive = false; clearTimeout(t); };
   }, [input]);
   return res;

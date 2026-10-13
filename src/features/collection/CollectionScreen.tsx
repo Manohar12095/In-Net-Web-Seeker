@@ -15,7 +15,8 @@ interface ResourceEvent {
   status: "ok" | "http_error" | "skipped" | "blocked" | "too_large" | "error";
   http_status?: number;
   mime?: string;
-  bytes?: number;
+  bytes?: number;   // from SSE stream
+  size?: number;    // from DB all-resources endpoint
   depth?: number;
   sha256?: string;
   duplicate?: boolean;
@@ -101,10 +102,10 @@ export function CollectionScreen({ project, runId, onBack }: CollectionScreenPro
   const logEndRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
 
-  // Counters
+  // Counters (bytes from SSE stream; size from DB all-resources – normalise both)
   const okCount = resources.filter(r => r.status === "ok").length;
   const errorCount = resources.filter(r => r.status !== "ok" && r.status !== "skipped").length;
-  const totalBytes = resources.reduce((a, r) => a + (r.bytes ?? 0), 0);
+  const totalBytes = resources.reduce((a, r) => a + (r.bytes ?? r.size ?? 0), 0);
   const dupCount = resources.filter(r => r.duplicate).length;
 
   // Stream SSE events with automatic polling fallback
@@ -353,7 +354,7 @@ export function CollectionScreen({ project, runId, onBack }: CollectionScreenPro
                 </span>
                 <span>{statusBadge(r.status, r.http_status)}</span>
                 <span className="hidden sm:block text-[10px] font-mono text-zinc-500">
-                  {r.bytes !== undefined ? fmtBytes(r.bytes) : "—"}
+                  {(r.bytes ?? r.size) !== undefined ? fmtBytes(r.bytes ?? r.size ?? 0) : "—"}
                 </span>
                 <span className="hidden md:block text-[10px] font-mono text-zinc-600 group-hover:text-zinc-400 transition-colors">
                   {r.sha256 ? r.sha256.slice(0, 8) + "…" : "—"}
@@ -361,8 +362,6 @@ export function CollectionScreen({ project, runId, onBack }: CollectionScreenPro
               </div>
             ))
           )}
-          {/* Auto-scroll anchor */}
-          <div ref={tableRef as any} />
         </div>
       </div>
 

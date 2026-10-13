@@ -20,11 +20,30 @@ export function RecentProjects({ onSelectProject, refreshTrigger }: RecentProjec
 
   useEffect(() => {
     let alive = true;
+
+    // Load from localStorage first as immediate cache
+    let cached: ProjectItem[] = [];
+    try {
+      cached = JSON.parse(localStorage.getItem("innet_recent_projects") || "[]");
+      if (cached.length > 0 && alive) {
+        setProjects(cached);
+        setLoading(false);
+      }
+    } catch {}
+
     api<ProjectItem[]>("/api/projects")
       .then((data) => {
         if (alive) {
-          setProjects(data);
+          // Merge API data with cached projects, API takes precedence
+          const map = new Map<string, ProjectItem>();
+          (data || []).forEach(p => map.set(p.id, p));
+          cached.forEach(p => { if (!map.has(p.id)) map.set(p.id, p); });
+          const merged = Array.from(map.values());
+          setProjects(merged);
           setLoading(false);
+          try {
+            localStorage.setItem("innet_recent_projects", JSON.stringify(merged.slice(0, 20)));
+          } catch {}
         }
       })
       .catch(() => {

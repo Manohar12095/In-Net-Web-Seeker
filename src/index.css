@@ -105,3 +105,82 @@ body {
   0% { transform: translateX(-200%); }
   100% { transform: translateX(400%); }
 }
+
+/* ── Performance & GPU acceleration hints ──────────────────────────── */
+/* Promote animated elements to their own compositor layer */
+.animate-wave-slow,
+.animate-wave-fast,
+.animate-pulse-glow,
+.animate-pulse {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* Mobile-safe momentum scrolling */
+.overflow-auto,
+.overflow-y-auto,
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Prevent layout thrash on hover transitions */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Contain expensive repaints inside cards */
+.rounded-xl {
+  contain: layout style;
+}
+
+/* Better font rendering at small sizes */
+.font-mono {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Slide-in animations (for dialogs/drawers) ─────────────────────── */
+@keyframes slideInFromTop {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInFromRight {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes zoomIn95 {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Tailwind v4 animate-in compat shims */
+.animate-in { animation-fill-mode: both; }
+.fade-in { animation-name: fadeIn; animation-duration: 200ms; }
+.slide-in-from-top-1 { animation-name: slideInFromTop; animation-duration: 150ms; }
+.slide-in-from-top-2 { animation-name: slideInFromTop; animation-duration: 200ms; }
+.slide-in-from-right-4 { animation-name: slideInFromRight; animation-duration: 150ms; }
+.zoom-in-95 { animation-name: zoomIn95; animation-duration: 200ms; }
+.duration-200 { animation-duration: 200ms; }
+.duration-150 { animation-duration: 150ms; }
+
+/* ── Mobile & touch refinements ────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Prevent text zoom on input focus on iOS */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Ensure dialogs don't overflow on small screens */
+  .fixed.inset-0 > div {
+    max-height: 95dvh;
+    overflow-y: auto;
+  }
+}

@@ -27,17 +27,10 @@ db.init(DATA)
 
 def auth(request: Request, authorization: str = Header(default=""), token: str = Query(default="")):
     path = request.url.path
-    # Health check and target validation are always public across all routing variants
-    if (
-        path in ("/api/health", "/health", "/api/index.py", "/api")
-        or path.endswith("/health")
-        or path.startswith("/api/targets/validate")
-    ):
-        return
 
     # Allow direct browser download of generated ZIP archives and crawled assets
     if (path.startswith("/api/exports/") and path.endswith("/download")) or \
-       (path.startswith("/api/projects/") and (path.endswith("/download") or path.endswith("/content"))):
+       (path.startswith("/api/projects/") and (path.endswith("/download") or path.endswith("/content") or path.endswith("/export-bundle"))):
         return
 
     # Same-origin web app requests on Vercel or localhost are permitted
@@ -100,7 +93,7 @@ JOBS: dict[str, Job] = {}
 @app.get("/api/health")
 @app.get("/health")
 @app.get("/api/index.py")
-def health(request: Request): return {"ok": True, "path": request.url.path}
+def health(): return {"ok": True}
 
 
 @app.get("/api/targets/validate")
@@ -373,19 +366,66 @@ def project_diff(pid: str, run_a: str = Query(...), run_b: str = Query(...)):
 
 # ── Exports & Verifier ───────────────────────────────────────────────────────
 
+class ExportReq(BaseModel):
+    name: str | None = None
+    target: str | None = None
+    resources: list[dict] | None = None
+
+
 @app.post("/api/projects/{pid}/exports")
-async def make_export(pid: str):
+async def make_export(pid: str, req: ExportReq = ExportReq()):
     export_id = uuid.uuid4().hex
     dest = DATA / "exports" / f"{export_id}.zip"
     dest.parent.mkdir(parents=True, exist_ok=True)
-    proj = next((p for p in db.list_projects() if p["id"] == pid), None)
-    if not proj:
+
+    # 1. Look up existing project or re-register in current serverless container
+    proj = db.get_project(pid)
+    if not proj and req.target:
+        proj = db.ensure_project(pid, req.name or pid, req.target)
+    elif not proj:
+        proj = next((p for p in db.list_projects() if p["id"] == pid), None)
+    if not proj and (req.name or req.target):
+        t = req.target or f"https://{req.name.split(' - ')[0]}"
+        proj = db.ensure_project(pid, req.name or pid, t)
+    elif not proj:
         raise HTTPException(404, {"code": "not_found", "message": "Unknown project", "retryable": False})
+
     host = parse_target(proj["target"]).host or "target"
     rows = db.resources_for_project(pid)
+    if not rows and req.resources:
+        rows = req.resources
+
     info = await asyncio.to_thread(export_project, rows, DATA / "projects" / pid, dest,
                                    {"host": host, "target": proj["target"], "project_id": pid, "export_id": export_id})
     return {"export_id": export_id, **info}
+
+
+@app.get("/api/projects/{pid}/export-bundle")
+@app.post("/api/projects/{pid}/export-bundle")
+async def export_bundle_direct(pid: str, target: str = Query(""), name: str = Query("")):
+    """Generate and stream the ZIP archive directly in a single request — zero container-hopping risk."""
+    export_id = uuid.uuid4().hex
+    dest = DATA / "exports" / f"{export_id}.zip"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    proj = db.get_project(pid)
+    if not proj and target:
+        proj = db.ensure_project(pid, name or pid, target)
+    elif not proj:
+        proj = next((p for p in db.list_projects() if p["id"] == pid), None)
+    if not proj and (name or target):
+        t = target or f"https://{name.split(' - ')[0]}"
+        proj = db.ensure_project(pid, name or pid, t)
+    elif not proj:
+        raise HTTPException(404, {"code": "not_found", "message": "Unknown project", "retryable": False})
+
+    host = parse_target(proj["target"]).host or "target"
+    slug = re.sub(r"[^a-z0-9]+", "-", host.lower()).strip("-")
+    rows = db.resources_for_project(pid)
+    await asyncio.to_thread(export_project, rows, DATA / "projects" / pid, dest,
+                            {"host": host, "target": proj["target"], "project_id": pid, "export_id": export_id})
+
+    return FileResponse(dest, media_type="application/zip", filename=f"web-seeker-{slug}-{export_id[:8]}.zip")
 
 
 @app.get("/api/exports/{export_id}/verify")
