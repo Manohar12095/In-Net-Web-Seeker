@@ -27,8 +27,8 @@ db.init(DATA)
 
 def auth(request: Request, authorization: str = Header(default=""), token: str = Query(default="")):
     path = request.url.path
-    # Health check is always public
-    if path in ("/api/health", "/health"):
+    # Health check is always public across all routing variants
+    if path in ("/api/health", "/health", "/api/index.py", "/api") or path.endswith("/health"):
         return
 
     # Allow direct browser download of generated ZIP archives and crawled assets
@@ -87,7 +87,9 @@ JOBS: dict[str, Job] = {}
 
 
 @app.get("/api/health")
-def health(): return {"ok": True}
+@app.get("/health")
+@app.get("/api/index.py")
+def health(request: Request): return {"ok": True, "path": request.url.path}
 
 
 @app.get("/api/targets/validate")
