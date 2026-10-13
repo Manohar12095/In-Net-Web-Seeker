@@ -21,7 +21,7 @@ from .intelligence import tech as tech_intel
 
 
 TOKEN = os.environ.get("WEBSEEKER_TOKEN", "")
-DATA = Path(os.environ.get("WEBSEEKER_DATA", "./data"))
+DATA = Path(os.environ.get("WEBSEEKER_DATA", "/tmp/data"))
 db.init(DATA)
 
 

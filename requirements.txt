@@ -1,0 +1,15 @@
+# Python dependencies for the /api serverless function.
+# These mirror the [project].dependencies in backend/pyproject.toml.
+# Vercel installs these automatically before running the function.
+
+fastapi>=0.143.0
+uvicorn>=0.54.0
+httpx>=0.28.1
+beautifulsoup4>=4.15.0
+lxml>=6.1.3
+dnspython>=2.9.0
+cryptography>=50.0.2
+pydantic>=2.14.1
+sqlalchemy>=2.1.4
+alembic>=1.20.0
+jinja2>=3.1.6

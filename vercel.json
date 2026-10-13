@@ -1,10 +1,20 @@
 {
+  "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+  "installCommand": "npm ci",
+  "framework": null,
+  "functions": {
+    "api/index.py": {
+      "runtime": "vercel-python@0.7.4",
+      "maxDuration": 30
     }
-  ]
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index.py" },
+    { "source": "/:path*",    "destination": "/index.html" }
+  ],
+  "env": {
+    "WEBSEEKER_DATA": "/tmp/data"
+  }
 }

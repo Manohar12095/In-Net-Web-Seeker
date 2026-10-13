@@ -34,5 +34,13 @@ export default defineConfig({
     watch: {
       ignored: ["**/src-tauri/**"],
     },
+    // During local dev, forward /api/* to the Python backend running on :8000
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
 });
