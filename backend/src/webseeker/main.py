@@ -27,9 +27,17 @@ db.init(DATA)
 
 def auth(request: Request, authorization: str = Header(default=""), token: str = Query(default="")):
     path = request.url.path
+    # Health check is always public
+    if path in ("/api/health", "/health"):
+        return
+
     # Allow direct browser download of generated ZIP archives and crawled assets
     if (path.startswith("/api/exports/") and path.endswith("/download")) or \
        (path.startswith("/api/projects/") and (path.endswith("/download") or path.endswith("/content"))):
+        return
+
+    # If no token is set in environment (e.g. initial web deployment), permit requests
+    if not TOKEN:
         return
 
     provided = ""
@@ -41,7 +49,7 @@ def auth(request: Request, authorization: str = Header(default=""), token: str =
     elif token:
         provided = token.strip()
 
-    if not TOKEN or not secrets.compare_digest(provided, TOKEN):
+    if not secrets.compare_digest(provided, TOKEN):
         raise HTTPException(401, {"code": "unauthorized", "message": "Missing or invalid token", "retryable": False})
 
 

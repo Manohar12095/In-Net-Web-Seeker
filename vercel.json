@@ -1,39 +1,28 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "services": {
-    "app": {
-      "root": ".",
-      "framework": "vite",
-      "buildCommand": "npm run build",
-      "outputDirectory": "dist",
-      "installCommand": "npm ci",
-      "bindings": [
-        {
-          "type": "service",
-          "service": "backend",
-          "format": "url",
-          "env": "VITE_BACKEND_URL"
-        }
-      ]
-    },
-    "backend": {
-      "root": ".",
-      "framework": "fastapi",
-      "entrypoint": "api/index.py"
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm ci",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": {
-        "service": "backend"
-      }
+      "source": "/api",
+      "destination": "/api/index.py"
     },
     {
-      "source": "/:path*",
-      "destination": {
-        "service": "app"
-      }
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/((?!api).*)",
+      "destination": "/index.html"
     }
-  ]
+  ],
+  "env": {
+    "WEBSEEKER_DATA": "/tmp/data"
+  }
 }
