@@ -10,7 +10,7 @@ import { existsSync } from "node:fs";
 import { resolve, join, delimiter } from "node:path";
 import process from "node:process";
 
-const rootDir = resolve(".");
+const rootDir = resolve(import.meta.dirname, "..");
 const backendDir = join(rootDir, "backend");
 const backendSrcDir = join(backendDir, "src");
 const devDataDir = join(rootDir, ".dev-data");

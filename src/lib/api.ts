@@ -19,7 +19,7 @@ export function apiConfig(): Promise<Cfg> {
     // - Locally, Vite proxies /api → http://127.0.0.1:8000 (see vite.config.ts).
     const backendUrl = import.meta.env.VITE_BACKEND_URL ?? "";
     const base = backendUrl || "";            // empty = same-origin (Vercel / Vite proxy)
-    const token = import.meta.env.VITE_API_TOKEN ?? import.meta.env.VITE_DEV_TOKEN ?? "";
+    const token = import.meta.env.VITE_API_TOKEN ?? import.meta.env.VITE_DEV_TOKEN ?? (import.meta.env.DEV ? "dev-token" : "");
     return { base, token };
   })();
   return cfg;
