@@ -397,7 +397,7 @@ export function AssetExplorer({ projectId, runId }: AssetExplorerProps) {
                 <div className="flex-1 flex items-center justify-center bg-zinc-950/60 border border-zinc-800/80 rounded-lg p-2">
                   {/* Safe image display */}
                   <img
-                    src={`http://127.0.0.1:8765/api/projects/${projectId}/resources/${selectedAsset.id}/content`}
+                    src={`/api/projects/${projectId}/resources/${selectedAsset.id}/content`}
                     alt="Preview"
                     className="max-h-64 max-w-full object-contain rounded"
                   />

@@ -7,11 +7,20 @@ let cfg: Promise<Cfg> | undefined;
 export function apiConfig(): Promise<Cfg> {
   cfg ??= (async () => {
     if ("__TAURI_INTERNALS__" in window) {
+      // Running inside the Tauri desktop app — get port & token from Rust
       const [port, token] = await invoke<[number, string]>("api_info");
       return { base: `http://127.0.0.1:${port}`, token };
     }
-    return { base: import.meta.env.VITE_DEV_API ?? "http://127.0.0.1:8765",
-             token: import.meta.env.VITE_DEV_TOKEN ?? "dev-token" };   // browser-only dev
+
+    // Web / Vercel deployment:
+    // - VITE_BACKEND_URL is injected by Vercel via the service binding at build time.
+    // - In production the Vercel rewrite routes /api/* to the backend service,
+    //   so we can use an empty base (same-origin relative paths).
+    // - Locally, Vite proxies /api → http://127.0.0.1:8000 (see vite.config.ts).
+    const backendUrl = import.meta.env.VITE_BACKEND_URL ?? "";
+    const base = backendUrl || "";            // empty = same-origin (Vercel / Vite proxy)
+    const token = import.meta.env.VITE_API_TOKEN ?? import.meta.env.VITE_DEV_TOKEN ?? "";
+    return { base, token };
   })();
   return cfg;
 }

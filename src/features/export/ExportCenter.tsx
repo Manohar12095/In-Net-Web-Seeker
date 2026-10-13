@@ -44,8 +44,8 @@ export function ExportCenter({ projectId, projectName, target }: ExportCenterPro
     try {
       await apiDownload(`/api/exports/${exportId}/download`, filename);
     } catch {
-      // Fallback: direct window download
-      window.location.href = `http://127.0.0.1:8765/api/exports/${exportId}/download`;
+      // Fallback: relative path works via Vercel rewrite or Vite dev proxy
+      window.location.href = `/api/exports/${exportId}/download`;
     }
   };
 
@@ -195,7 +195,7 @@ export function ExportCenter({ projectId, projectName, target }: ExportCenterPro
                 Download Archive (.ZIP)
               </button>
               <a
-                href={`http://127.0.0.1:8765/api/exports/${latestExport.export_id}/download`}
+                href={`/api/exports/${latestExport.export_id}/download`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-zinc-400 hover:text-zinc-200 underline font-mono ml-1"

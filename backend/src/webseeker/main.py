@@ -48,7 +48,11 @@ def auth(request: Request, authorization: str = Header(default=""), token: str =
 app = FastAPI(title="In Net Web Seeker engine", dependencies=[Depends(auth)])
 app.add_middleware(CORSMiddleware, allow_headers=["*"], allow_methods=["*"],
                    allow_origins=["tauri://localhost", "http://tauri.localhost",
-                                  "http://localhost:1420", "http://localhost:5173"])
+                                  "http://localhost:1420", "http://localhost:5173",
+                                  # Vercel deployments (Services routing is same-origin,
+                                  # but allow vercel.app domain as a safety net)
+                                  "https://*.vercel.app"],
+                   allow_origin_regex=r"https://.*\.vercel\.app")
 
 
 class StartReq(BaseModel):
