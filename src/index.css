@@ -1,0 +1,107 @@
+@import "tailwindcss";
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/700.css";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+
+:root {
+  --canvas-dark: #0A0A0F;
+  --surface-elevated: #12121A;
+  --surface-card: #181824;
+  --surface-card-hover: #222233;
+  --charcoal-ink: #E4E4ED;
+  --muted-steel: #8E8EA0;
+  --whisper-border: rgba(255, 255, 255, 0.08);
+  --whisper-border-hover: rgba(255, 255, 255, 0.16);
+  --signal-teal: #2DD4BF;
+  --signal-teal-dim: rgba(45, 212, 191, 0.12);
+  --risk-amber: #F59E0B;
+  --error-crimson: #EF4444;
+  --success-emerald: #10B981;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--canvas-dark);
+  color: var(--charcoal-ink);
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  user-select: none;
+}
+
+.font-display {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(10, 10, 15, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Perpetual wave animation */
+@keyframes waveDriftSlow {
+  0% { transform: translateX(0) translateY(0); }
+  50% { transform: translateX(-25px) translateY(8px); }
+  100% { transform: translateX(0) translateY(0); }
+}
+
+@keyframes waveDriftFast {
+  0% { transform: translateX(0) translateY(0); }
+  50% { transform: translateX(20px) translateY(-6px); }
+  100% { transform: translateX(0) translateY(0); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.65; transform: scale(1.03); }
+}
+
+.animate-wave-slow {
+  animation: waveDriftSlow 18s ease-in-out infinite;
+}
+
+.animate-wave-fast {
+  animation: waveDriftFast 12s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-wave-slow,
+  .animate-wave-fast,
+  .animate-pulse-glow {
+    animation: none !important;
+  }
+}
+
+/* Shimmer for indeterminate progress bar */
+@keyframes shimmer {
+  0% { transform: translateX(-200%); }
+  100% { transform: translateX(400%); }
+}

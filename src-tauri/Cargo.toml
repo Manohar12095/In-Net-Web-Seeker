@@ -1,0 +1,28 @@
+[package]
+name = "in-net-web-seeker"
+version = "0.1.0"
+description = "In Net Web Seeker - Website Intelligence Platform"
+authors = ["S. Manohar <IN NET Creations>"]
+edition = "2021"
+
+[lib]
+name = "in_net_web_seeker_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+uuid = { version = "1", features = ["v4"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
